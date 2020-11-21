@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using System.Linq;
 
 namespace ConsoleAppForTesting
 {
@@ -9,17 +11,41 @@ namespace ConsoleAppForTesting
         public static int currentValue = 0;
         static void Main(string[] args)
         {
-            long x = 128;
-            long y = 130;
-            long loss = 11;
+            long x = 33;
+
+            long y = 18;
+            long loss = 0;
             long timeLimit = 1000000;
 
             ExtensionMethods.PrintGrid(x, y, loss, timeLimit);
 
             ExtensionMethods.CalcElderAge(x, y, loss, timeLimit);
 
-            ExtensionMethods.WipElderAge(x, y, loss, timeLimit);
+            var firstXValue = 1;
+            do
+            {
+                firstXValue *= 2;
+            } while (firstXValue <= x);
+            firstXValue /= 2;
+            BigInteger core = ExtensionMethods.WipElderAge(firstXValue, y, loss, timeLimit);
+            BigInteger eldersAge = core;
 
+            if (x % firstXValue > 0)
+            {
+                var secondXValue = x - firstXValue;
+                BigInteger additional = ExtensionMethods.ElderAgeFrom2PowNMultiple_ToX(x, y, loss, timeLimit);
+                eldersAge += (secondXValue * additional);
+
+                // calculating contribution of last rows that are not a full multiple of firstXValue
+                BigInteger leftoverRows = y % firstXValue;
+                BigInteger firstLeftoverRow = y - leftoverRows;
+                BigInteger valueToAsumFrom = firstLeftoverRow - firstXValue;
+                // aSum from valueToAsumFrom to valueToAsumFrom + leftOverRows
+                BigInteger aSum = (leftoverRows * (valueToAsumFrom + valueToAsumFrom + leftoverRows - 1)) / 2;
+
+                eldersAge += aSum;
+            }
+            Console.WriteLine($"eqn based elders age = {eldersAge}");
 
             Console.ReadLine();
         }
@@ -27,7 +53,26 @@ namespace ConsoleAppForTesting
 
     public static class ExtensionMethods
     {
-        public static void WipElderAge(long x, long y, long loss, long timeLimit)
+        private static List<BigInteger> extraValues = new List<BigInteger>();
+
+        // it makes a difference if (y / x == an even number) VS if (y / x == an odd number)
+        public static BigInteger ElderAgeFrom2PowNMultiple_ToX(long x, long y, long loss, long timeLimit)
+        {
+            // if (y / x == odd number)
+            BigInteger[] extraValuesArray = extraValues.ToArray();
+            BigInteger lastLinesIfRowsLeftIsZero = extraValuesArray[extraValuesArray.Length - 2];
+            extraValuesArray[extraValuesArray.Length - 2] = 0;
+
+            BigInteger additionalAge = 0;
+            foreach (BigInteger entry in extraValuesArray)
+            {
+                additionalAge += entry;
+            }
+          
+            return additionalAge;
+        }
+
+        public static BigInteger WipElderAge(long x, long y, long loss, long timeLimit)
         {
             BigInteger eldersTime = 0;
             // if loss is 7, this is the 4th odd so 7 * 4 (calculated as below)
@@ -36,7 +81,6 @@ namespace ConsoleAppForTesting
             BigInteger numTerms = 0;
             if (loss > 0)
             {
-
                 numTerms = x - (loss + 1);
             }
             else
@@ -46,7 +90,7 @@ namespace ConsoleAppForTesting
 
 
             BigInteger aSum = (numTerms * ( 1 + x - (loss + 1))) / 2;
-
+            extraValues.Add(aSum);
             eldersTime += aSum * y;
 
             BigInteger toAdd1 = 0;
@@ -55,6 +99,7 @@ namespace ConsoleAppForTesting
             {
                 toAdd1 += i * x * x;                
                 toAdd1 -= (loss * oddNumberIndex);
+                extraValues.Add(toAdd1 + aSum);
                 //toAdd1 *= x - 1;
                 toAdd1 *= x;
 
@@ -62,18 +107,18 @@ namespace ConsoleAppForTesting
                 eldersTime += toAdd1;
                 toAdd1 = 0;
             }
-            //eldersTime += toAdd1;
 
 
 
             BigInteger toAdd = (tempTerm) * x * x;
             var sub = loss * oddNumberIndex;
             toAdd -= loss * oddNumberIndex;
+            extraValues.Add(toAdd + aSum);
             toAdd *= y % x;
 
             eldersTime += toAdd;
 
-            Console.WriteLine($"Elder age = {eldersTime}");
+            return eldersTime;
         }
 
         public static void PrintGrid(long x, long y, long loss, long timeLimit)
@@ -112,9 +157,9 @@ namespace ConsoleAppForTesting
 
                 }
 
-                sb.Append($" -- Row {i}");
+                sb.Append($" -- Row {i.ToString("00")}");
 
-                Console.WriteLine($"{sb}   = {sumOfRow}, diff 1st row = {sumOfRow - sumFirstRow}");
+                Console.WriteLine($"{sb}   sum={sumOfRow}, diff 1st row = {sumOfRow - sumFirstRow}");
             }
 
             //for (long i = loss+1; i < n; i++)
@@ -169,7 +214,7 @@ namespace ConsoleAppForTesting
                     }
                 }
             }
-            Console.WriteLine($"Elder age = {eldersTime}");
+            Console.WriteLine($"naive Elder age = {eldersTime}");
         }
     }
 }
