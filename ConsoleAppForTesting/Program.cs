@@ -11,9 +11,9 @@ namespace ConsoleAppForTesting
         public static int currentValue = 0;
         static void Main(string[] args)
         {
-            long x = 33;
+            long x = 23;
 
-            long y = 18;
+            long y = 19;
             long loss = 0;
             long timeLimit = 1000000;
 
@@ -30,21 +30,31 @@ namespace ConsoleAppForTesting
             BigInteger core = ExtensionMethods.WipElderAge(firstXValue, y, loss, timeLimit);
             BigInteger eldersAge = core;
 
-            if (x % firstXValue > 0)
-            {
-                var secondXValue = x - firstXValue;
-                BigInteger additional = ExtensionMethods.ElderAgeFrom2PowNMultiple_ToX(x, y, loss, timeLimit);
-                eldersAge += (secondXValue * additional);
+            // ----- NEEDS WORK 
 
-                // calculating contribution of last rows that are not a full multiple of firstXValue
-                BigInteger leftoverRows = y % firstXValue;
-                BigInteger firstLeftoverRow = y - leftoverRows;
-                BigInteger valueToAsumFrom = firstLeftoverRow - firstXValue;
-                // aSum from valueToAsumFrom to valueToAsumFrom + leftOverRows
-                BigInteger aSum = (leftoverRows * (valueToAsumFrom + valueToAsumFrom + leftoverRows - 1)) / 2;
+            //if (x % firstXValue > 0)
+            //{
+            //    var secondXValue = x - firstXValue;
+            //    BigInteger additional = ExtensionMethods.ElderAgeFrom2PowNMultiple_ToX(x, y, loss, timeLimit);
+            //    eldersAge += (secondXValue * additional);
 
-                eldersAge += aSum;
-            }
+            //    // calculating contribution of last rows that are not a full multiple of firstXValue
+            //    BigInteger leftoverRows = y % firstXValue;
+            //    BigInteger firstLeftoverRow = y - leftoverRows;
+            //    BigInteger valueToAsumFrom = firstLeftoverRow - firstXValue;
+            //    // aSum from valueToAsumFrom to valueToAsumFrom + leftOverRows
+            //    BigInteger aSum = (leftoverRows * (valueToAsumFrom + valueToAsumFrom + leftoverRows - 1)) / 2;
+
+            //    eldersAge += aSum;
+            //}
+
+
+
+
+
+            // another attempt
+            ExtensionMethods.Wip2ElderAge(x, y, loss, timeLimit);
+
             Console.WriteLine($"eqn based elders age = {eldersAge}");
 
             Console.ReadLine();
@@ -53,6 +63,82 @@ namespace ConsoleAppForTesting
 
     public static class ExtensionMethods
     {
+        internal static BigInteger Wip2ElderAge(long x, long y, long loss, long timeLimit)
+        {
+            // make sure the x value is bigger...?
+
+            var firstXValue = 1;
+            do
+            {
+                firstXValue *= 2;
+            } while (firstXValue <= x);
+            firstXValue /= 2;
+
+            var firstYValue = 1;
+            do
+            {
+                firstYValue *= 2;
+            } while (firstYValue <= y);
+            firstYValue /= 2;
+
+
+            // calculate values for the square y * y (because y is the smaller square)
+            BigInteger sumFirstSquare = AriSum(firstYValue, firstYValue, 0);
+
+
+            // calculate remaining rows firstYValue -> y
+            // aSum each row should be aSum from firstYValue to (2 * firstYValue) - 1
+            // multiply that aSum by y - firstYValue
+            BigInteger numTerms = firstYValue;
+            BigInteger a = (2 * firstYValue) - 1;
+            BigInteger aSum = (numTerms * (firstYValue + a)) / 2;
+            BigInteger aSumRemainingRows = aSum * (y - firstYValue);
+
+
+            // calculate remaining columns from firstYValue -> x
+            // aSum each column should be aSum from firstYValue -> (2 * firstYValue) - 1
+            // multiply that aSum by x - firstYValue
+            numTerms = firstYValue;
+            a = (2 * firstYValue) - 1;
+            aSum = (numTerms * (firstYValue + a)) / 2;
+            BigInteger aSumRemainingColumns = aSum * (x - firstYValue);
+
+
+            // calculate remaining rectangle sums
+            // from firstYValue + 1 -> x (so x - (firstYValue + 1))
+            // multipled by y - (firstYValue + 1)
+            // TODO - calculation for sum next square is wrong - its not a straightforward aSum 1+2+3+4+5 because the third row is actually 1+2+3+6+7
+            numTerms = (x - firstYValue - 2);
+            aSum = (numTerms * (1 + numTerms)) / 2;
+            BigInteger aSumNextSquare = aSum * (y - firstYValue);
+
+            BigInteger total = sumFirstSquare + aSumRemainingRows + aSumRemainingColumns + aSumNextSquare;
+
+            return total;
+        }
+
+
+        // y is multiplier
+        internal static BigInteger AriSum(BigInteger x, BigInteger y, BigInteger loss)
+        {
+            BigInteger numTerms = 0;
+            if (loss > 0)
+            {
+                numTerms = x - (loss + 1);
+            }
+            else
+            {
+                numTerms = x - 1;
+            }
+
+
+            BigInteger aSum = (numTerms * (1 + x - (loss + 1))) / 2;
+            return aSum * y;
+        }
+
+
+
+
         private static List<BigInteger> extraValues = new List<BigInteger>();
 
         // it makes a difference if (y / x == an even number) VS if (y / x == an odd number)
@@ -216,6 +302,8 @@ namespace ConsoleAppForTesting
             }
             Console.WriteLine($"naive Elder age = {eldersTime}");
         }
+
+        
     }
 }
 
