@@ -11,7 +11,7 @@ namespace ConsoleAppForTesting
         public static int currentValue = 0;
         static void Main(string[] args)
         {
-            long x = 23;
+            long x = 22;
 
             long y = 19;
             long loss = 0;
@@ -108,7 +108,8 @@ namespace ConsoleAppForTesting
             // from firstYValue + 1 -> x (so x - (firstYValue + 1))
             // multipled by y - (firstYValue + 1)
             // TODO - calculation for sum next square is wrong - its not a straightforward aSum 1+2+3+4+5 because the third row is actually 1+2+3+6+7
-            numTerms = (x - firstYValue - 2);
+            // Can I make another square?
+            numTerms = (x - firstYValue - 1);
             aSum = (numTerms * (1 + numTerms)) / 2;
             BigInteger aSumNextSquare = aSum * (y - firstYValue);
 
