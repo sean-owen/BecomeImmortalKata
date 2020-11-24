@@ -11,16 +11,24 @@ namespace ConsoleAppForTesting
         public static int currentValue = 0;
         static void Main(string[] args)
         {
-            long x = 1000;
-            
-            long y = 15;
+            // only works with even condition extra lines commented out
+            //long x = 1000;
+            //long y = 15;
+
+            //fails for these values
+            //long x = 500;
+            //long y = 15;
+
+            long x = 45;
+            long y = 5;
+
             long loss = 0;
             long timeLimit = 1000000;
 
             ExtensionMethods.PrintGrid(x, y, loss, timeLimit);
 
             ExtensionMethods.CalcElderAge(x, y, loss, timeLimit);
-            
+
 
 
             // another attempt
@@ -54,7 +62,7 @@ namespace ConsoleAppForTesting
 
 
             // calculate values for the square y * y (because y is the smaller square)
-            BigInteger sumFirstSquare = AriSum(firstYValue, firstYValue, 0);
+            BigInteger sumFirstSquare = AriSum(firstYValue, firstYValue, loss);
 
 
             // calculate remaining rows firstYValue -> y
@@ -65,6 +73,23 @@ namespace ConsoleAppForTesting
             BigInteger a = (2 * firstYValue) - 1;
             BigInteger aSum = (numTerms * (firstYValue + a)) / 2;
             BigInteger aSumRemainingRows = aSum * (y - firstYValue);
+
+            // ----- dealing with loss
+            if (firstYValue > loss)
+            {
+                // then above eqns are good to go
+            }
+            else if ((firstYValue < loss) && (a > loss))
+            {
+                numTerms = a - loss;
+                aSum = (numTerms * (loss + 1 + a)) / 2;
+                aSumRemainingRows = aSum * (y - firstYValue);
+            }
+            else
+            {
+                aSumRemainingRows = 0;
+            }
+
 
             // Use to DEBUG if remaining row eqns are correct -------------- 
             //BigInteger remainingRowXors = 0;
@@ -82,12 +107,31 @@ namespace ConsoleAppForTesting
             //aSumRemainingRows = remainingRowXors;
             // -----------------------------------------------------------------------
 
+
+
+
             // calculate remaining columns from firstYValue -> x
 
             // aSum each column should be aSum from firstYValue -> (2 * firstYValue) - 1
             // multiply that aSum by x - firstYValue
             numTerms = x - firstYValue;
             aSum = (numTerms * (firstYValue + x - 1)) / 2;
+
+            // ----- dealing with loss
+            if (firstYValue > loss)
+            {
+                // then above eqns are good to go
+            }
+            else if ((firstYValue < loss) && ((x - 1) > loss))
+            {
+                numTerms = (x - 1) - loss;
+                aSum = (numTerms * (loss + 1 + (x - 1))) / 2;
+            }
+            else
+            {
+                aSum = 0;
+            }
+
 
             BigInteger aSumRemainingColumns = 0;
             if (firstXValue == x) // x is multiple 2^n
@@ -123,7 +167,19 @@ namespace ConsoleAppForTesting
                 numTerms = firstYValue - 1;
                 if (numTerms < rowOnWhichIncrementSquares)
                 {
-                    aSumRemainingColumns += (numTerms * (1 + firstYValue - 1)) / 2;
+                    // ----- dealing with loss
+                    if (1 > loss)
+                    {
+                        aSumRemainingColumns += (numTerms * (1 + firstYValue - 1)) / 2;
+                    }
+                    else if ((1 < loss) && ((firstYValue - 1) > loss))
+                    {
+                        aSumRemainingColumns += ((numTerms - loss) * (loss + firstYValue - 1)) / 2;
+                    }
+                    else
+                    {
+                        // dont add anything
+                    }
                 }
                 else
                 {
@@ -133,8 +189,24 @@ namespace ConsoleAppForTesting
 
                     // aSum from row 0 -> rowOnWhichIncrementSquares
                     BigInteger nestedNumTerms = rowOnWhichIncrementSquares - 1;
-                    BigInteger firstSeries = (nestedNumTerms * (1 + nestedNumTerms)) / 2;
-                    aSumRemainingColumns += firstSeries;
+
+                    // ----- dealing with loss
+                    BigInteger firstSeries = 0;
+                    if (1 > loss)
+                    {
+                        firstSeries = (nestedNumTerms * (1 + nestedNumTerms)) / 2;
+                        aSumRemainingColumns += firstSeries;
+                    }
+                    else if ((1 < loss) && (nestedNumTerms > loss))
+                    {
+                        firstSeries = ((nestedNumTerms - loss) * (loss + nestedNumTerms)) / 2;
+                        aSumRemainingColumns += firstSeries;
+                    }
+                    else
+                    {
+                        // dont add anything
+                    }
+
 
                     BigInteger firstIncVal = (rowOnWhichIncrementSquares - 1); // 3
                     BigInteger firstIncrement = (rowOnWhichIncrementSquares - 1) * (rowOnWhichIncrementSquares - 1); // 9
@@ -147,20 +219,47 @@ namespace ConsoleAppForTesting
                     {
                         finalIncValue = i * subsequentIncrements;
 
-                        aSumRemainingColumns += finalIncValue * rowOnWhichIncrementSquares;
-                        aSumRemainingColumns += firstSeries;
+                        // ----- dealing with loss
+                        if (finalIncValue > loss)
+                        {
+                            aSumRemainingColumns += finalIncValue * rowOnWhichIncrementSquares;
+                            aSumRemainingColumns += firstSeries; // TODO - not sure if this should be inside this if statement
+                        }
+
                         i++;
                     }
 
                     // this condition should technically never be entered...?
                     if ((numTerms + 1) % rowOnWhichIncrementSquares != 0)
                     {
-                        aSumRemainingColumns += (finalIncValue + subsequentIncrements) * (numTerms % rowOnWhichIncrementSquares);
-                        aSumRemainingColumns += (numTerms % rowOnWhichIncrementSquares) - 1;
+                        // ----- dealing with loss
+                        if ((finalIncValue + subsequentIncrements) > loss)
+                        {
+                            aSumRemainingColumns += (finalIncValue + subsequentIncrements) * (numTerms % rowOnWhichIncrementSquares);
+                        }
+                        if (((numTerms % rowOnWhichIncrementSquares) - 1) > loss)
+                        {
+                            aSumRemainingColumns += (numTerms % rowOnWhichIncrementSquares) - 1;
+                        }
 
-                        nestedNumTerms = (numTerms % rowOnWhichIncrementSquares) - 1;
-                        BigInteger lastSeries = (nestedNumTerms * (1 + nestedNumTerms)) / 2;
-                        aSumRemainingColumns += lastSeries;
+                        // ----- dealing with loss
+                        if (1 > loss)
+                        {
+                            nestedNumTerms = (numTerms % rowOnWhichIncrementSquares) - 1;
+                            BigInteger lastSeries = (nestedNumTerms * (1 + nestedNumTerms)) / 2;
+                            aSumRemainingColumns += lastSeries;
+                        }
+                        else if ((1 < loss) && (nestedNumTerms > loss))
+                        {
+                            nestedNumTerms = (numTerms % rowOnWhichIncrementSquares) - 1;
+                            BigInteger lastSeries = ((nestedNumTerms - loss) * (loss + nestedNumTerms)) / 2;
+                            aSumRemainingColumns += lastSeries;
+                        }
+                        else
+                        {
+                            // dont add anything 
+                        }
+
                     }
 
                 }
@@ -171,18 +270,60 @@ namespace ConsoleAppForTesting
             {
                 aSumRemainingColumns = aSum * firstYValue;
 
-                // +4, +4 each 2 rows (not including first 2 rows) --- need to update to match pattern written out in notebook
-                numTerms = firstYValue - 2;
+                // check if rows is > rows required for a pattern change --------
 
-                int firstTerm = 4;
-                BigInteger lastTerm = 4 * (numTerms / 2);
-                aSum = ((numTerms / 2) * (firstTerm + lastTerm)) / 2;
-
-                aSumRemainingColumns += 2 * aSum;
-                if (numTerms % 2 != 0)
+                // get largest multiple 2^n that divides x to give a whole number
+                BigInteger rowOfPatternChange = 0;
+                BigInteger multiple2PowN = 1;
+                while (multiple2PowN < x)
                 {
-                    aSumRemainingColumns -= lastTerm;
+                    if (x % multiple2PowN == 0)
+                    {
+                        rowOfPatternChange = multiple2PowN;
+                    }
+                    multiple2PowN *= 2;
                 }
+
+
+                if (firstYValue > rowOfPatternChange)
+                {
+                    // +4, +4 each 2 rows (not including first 2 rows) --- need to update to match pattern written out in notebook
+                    numTerms = firstYValue - rowOfPatternChange;
+
+                    BigInteger firstTerm = rowOfPatternChange * rowOfPatternChange;
+                    BigInteger subsequentIncrements = firstTerm;
+                    int i = 1;
+
+                    BigInteger finalIncValue = 1;
+                    while (i < (firstYValue / rowOfPatternChange)) // the division that gives how many times we jump by increment as a whole number
+                    {
+                        finalIncValue = i * subsequentIncrements;
+
+                        // ----- dealing with loss
+                        if (finalIncValue > loss)
+                        {
+                            aSumRemainingColumns += finalIncValue * rowOfPatternChange;
+                        }
+
+                        i++;
+                    }
+
+                    //BigInteger lastTerm = 4 * (numTerms / 2);
+
+                    //aSum = ((numTerms / 2) * (firstTerm + lastTerm)) / 2;
+
+                    //aSumRemainingColumns += 2 * aSum;
+                    if ((firstYValue % rowOfPatternChange) != 0)
+                    {
+                        // ----- dealing with loss
+                        if (finalIncValue > loss)
+                        {
+                            aSumRemainingColumns += (firstYValue % rowOfPatternChange) * finalIncValue;
+                        }
+                    }
+                }
+
+
             }
 
             // Use to DEBUG if remaining columns eqns are correct -------------- 
@@ -221,6 +362,8 @@ namespace ConsoleAppForTesting
 
             BigInteger total = sumFirstSquare + aSumRemainingRows + aSumRemainingColumns + remainingXors;
 
+            var timeWrapped = total % timeLimit;
+
             return total;
         }
 
@@ -243,7 +386,7 @@ namespace ConsoleAppForTesting
             return aSum * y;
         }
 
-      
+
 
         public static void PrintGrid(long x, long y, long loss, long timeLimit)
         {
