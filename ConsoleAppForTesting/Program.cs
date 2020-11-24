@@ -11,49 +11,20 @@ namespace ConsoleAppForTesting
         public static int currentValue = 0;
         static void Main(string[] args)
         {
-            long x = 22;
-
-            long y = 19;
+            long x = 1000;
+            
+            long y = 15;
             long loss = 0;
             long timeLimit = 1000000;
 
             ExtensionMethods.PrintGrid(x, y, loss, timeLimit);
 
             ExtensionMethods.CalcElderAge(x, y, loss, timeLimit);
-
-            var firstXValue = 1;
-            do
-            {
-                firstXValue *= 2;
-            } while (firstXValue <= x);
-            firstXValue /= 2;
-            BigInteger core = ExtensionMethods.WipElderAge(firstXValue, y, loss, timeLimit);
-            BigInteger eldersAge = core;
-
-            // ----- NEEDS WORK 
-
-            //if (x % firstXValue > 0)
-            //{
-            //    var secondXValue = x - firstXValue;
-            //    BigInteger additional = ExtensionMethods.ElderAgeFrom2PowNMultiple_ToX(x, y, loss, timeLimit);
-            //    eldersAge += (secondXValue * additional);
-
-            //    // calculating contribution of last rows that are not a full multiple of firstXValue
-            //    BigInteger leftoverRows = y % firstXValue;
-            //    BigInteger firstLeftoverRow = y - leftoverRows;
-            //    BigInteger valueToAsumFrom = firstLeftoverRow - firstXValue;
-            //    // aSum from valueToAsumFrom to valueToAsumFrom + leftOverRows
-            //    BigInteger aSum = (leftoverRows * (valueToAsumFrom + valueToAsumFrom + leftoverRows - 1)) / 2;
-
-            //    eldersAge += aSum;
-            //}
-
-
-
+            
 
 
             // another attempt
-            ExtensionMethods.Wip2ElderAge(x, y, loss, timeLimit);
+            BigInteger eldersAge = ExtensionMethods.Wip2ElderAge(x, y, loss, timeLimit);
 
             Console.WriteLine($"eqn based elders age = {eldersAge}");
 
@@ -65,7 +36,7 @@ namespace ConsoleAppForTesting
     {
         internal static BigInteger Wip2ElderAge(long x, long y, long loss, long timeLimit)
         {
-            // make sure the x value is bigger...?
+            // TODO - make sure the x value is bigger...?
 
             var firstXValue = 1;
             do
@@ -87,6 +58,7 @@ namespace ConsoleAppForTesting
 
 
             // calculate remaining rows firstYValue -> y
+
             // aSum each row should be aSum from firstYValue to (2 * firstYValue) - 1
             // multiply that aSum by y - firstYValue
             BigInteger numTerms = firstYValue;
@@ -94,26 +66,160 @@ namespace ConsoleAppForTesting
             BigInteger aSum = (numTerms * (firstYValue + a)) / 2;
             BigInteger aSumRemainingRows = aSum * (y - firstYValue);
 
+            // Use to DEBUG if remaining row eqns are correct -------------- 
+            //BigInteger remainingRowXors = 0;
+            //for (var i = 0; i < firstYValue; i++)
+            //{
+            //    for (var j = firstYValue; j < y; j++)
+            //    {
+            //        var xor = i ^ j;
+            //        if (xor > loss)
+            //        {
+            //            remainingRowXors += xor - loss;
+            //        }
+            //    }
+            //}
+            //aSumRemainingRows = remainingRowXors;
+            // -----------------------------------------------------------------------
 
             // calculate remaining columns from firstYValue -> x
+
             // aSum each column should be aSum from firstYValue -> (2 * firstYValue) - 1
             // multiply that aSum by x - firstYValue
-            numTerms = firstYValue;
-            a = (2 * firstYValue) - 1;
-            aSum = (numTerms * (firstYValue + a)) / 2;
-            BigInteger aSumRemainingColumns = aSum * (x - firstYValue);
+            numTerms = x - firstYValue;
+            aSum = (numTerms * (firstYValue + x - 1)) / 2;
+
+            BigInteger aSumRemainingColumns = 0;
+            if (firstXValue == x) // x is multiple 2^n
+            {
+                aSumRemainingColumns = aSum * firstYValue;
+            }
+            else if (x % 2 != 0) // x is odd
+            {
+                aSumRemainingColumns = aSum * firstYValue;
+
+
+                // +1 each row incrementing, up to row number #, where # = largest multiple of 2^n that divides x+1 or x-1 to give a whole number
+                // after row number #, the increment jumps to ((# - 1) ^ 2) + # and then increments +1 each row up to row number 2 * #
+                // after row number 2 * #, the increment jumps to 2 * ((# - 1) ^ 2) + increment value at row 2 * #
+                // and so on, each # rows, incrementing by (row / #) * (# - 1)^2 + last increment value
+
+                BigInteger rowOnWhichIncrementSquares = 0;
+                BigInteger iterator = 1;
+                while (iterator <= x + 1)
+                {
+                    iterator *= 2;
+                    if ((x - 1) % iterator == 0 && iterator > rowOnWhichIncrementSquares)
+                    {
+                        rowOnWhichIncrementSquares = iterator;
+                    }
+                    if ((x + 1) % iterator == 0 && iterator > rowOnWhichIncrementSquares)
+                    {
+                        rowOnWhichIncrementSquares = iterator;
+                    }
+                }
+
+
+                numTerms = firstYValue - 1;
+                if (numTerms < rowOnWhichIncrementSquares)
+                {
+                    aSumRemainingColumns += (numTerms * (1 + firstYValue - 1)) / 2;
+                }
+                else
+                {
+                    //aSumRemainingColumns += (numTerms * (1 + firstYValue - 1)) / 2; // +1 from first term to last term
+                    //aSumRemainingColumns -= numTerms / rowOnWhichIncrementSquares; // dont get +1 at the row change where the square is added, so remove 1 for each change
+                    //aSumRemainingColumns += (rowOnWhichIncrementSquares - 1) * (rowOnWhichIncrementSquares - 1) * (numTerms / rowOnWhichIncrementSquares);
+
+                    // aSum from row 0 -> rowOnWhichIncrementSquares
+                    BigInteger nestedNumTerms = rowOnWhichIncrementSquares - 1;
+                    BigInteger firstSeries = (nestedNumTerms * (1 + nestedNumTerms)) / 2;
+                    aSumRemainingColumns += firstSeries;
+
+                    BigInteger firstIncVal = (rowOnWhichIncrementSquares - 1); // 3
+                    BigInteger firstIncrement = (rowOnWhichIncrementSquares - 1) * (rowOnWhichIncrementSquares - 1); // 9
+                    // aSumRemainingColumns += firstIncrement;
+
+                    BigInteger subsequentIncrements = firstIncVal + firstIncrement; // 12
+                    BigInteger finalIncValue = 0;
+                    int i = 1;
+                    while (i < ((numTerms + 1) / rowOnWhichIncrementSquares)) // the division that gives how many times we jump by increment as a whole number
+                    {
+                        finalIncValue = i * subsequentIncrements;
+
+                        aSumRemainingColumns += finalIncValue * rowOnWhichIncrementSquares;
+                        aSumRemainingColumns += firstSeries;
+                        i++;
+                    }
+
+                    // this condition should technically never be entered...?
+                    if ((numTerms + 1) % rowOnWhichIncrementSquares != 0)
+                    {
+                        aSumRemainingColumns += (finalIncValue + subsequentIncrements) * (numTerms % rowOnWhichIncrementSquares);
+                        aSumRemainingColumns += (numTerms % rowOnWhichIncrementSquares) - 1;
+
+                        nestedNumTerms = (numTerms % rowOnWhichIncrementSquares) - 1;
+                        BigInteger lastSeries = (nestedNumTerms * (1 + nestedNumTerms)) / 2;
+                        aSumRemainingColumns += lastSeries;
+                    }
+
+                }
+
+
+            }
+            else // x is even
+            {
+                aSumRemainingColumns = aSum * firstYValue;
+
+                // +4, +4 each 2 rows (not including first 2 rows) --- need to update to match pattern written out in notebook
+                numTerms = firstYValue - 2;
+
+                int firstTerm = 4;
+                BigInteger lastTerm = 4 * (numTerms / 2);
+                aSum = ((numTerms / 2) * (firstTerm + lastTerm)) / 2;
+
+                aSumRemainingColumns += 2 * aSum;
+                if (numTerms % 2 != 0)
+                {
+                    aSumRemainingColumns -= lastTerm;
+                }
+            }
+
+            // Use to DEBUG if remaining columns eqns are correct -------------- 
+            //BigInteger remainingColumnXors = 0;
+            //for (var i = 0; i < firstYValue; i++)
+            //{
+            //    for (var j = firstYValue; j < x; j++)
+            //    {
+            //        var xor = i ^ j;
+            //        if (xor > loss)
+            //        {
+            //            remainingColumnXors += xor - loss;
+            //        }
+            //    }
+            //}
+            //aSumRemainingColumns = remainingColumnXors;
+            // -----------------------------------------------------------------------
+
+
 
 
             // calculate remaining rectangle sums
-            // from firstYValue + 1 -> x (so x - (firstYValue + 1))
-            // multipled by y - (firstYValue + 1)
-            // TODO - calculation for sum next square is wrong - its not a straightforward aSum 1+2+3+4+5 because the third row is actually 1+2+3+6+7
-            // Can I make another square?
-            numTerms = (x - firstYValue - 1);
-            aSum = (numTerms * (1 + numTerms)) / 2;
-            BigInteger aSumNextSquare = aSum * (y - firstYValue);
+            BigInteger remainingXors = 0;
+            for (var i = firstYValue; i < x; i++)
+            {
+                for (var j = firstYValue; j < y; j++)
+                {
+                    var xor = i ^ j;
+                    if (xor > loss)
+                    {
+                        remainingXors += xor - loss;
+                    }
+                }
+            }
 
-            BigInteger total = sumFirstSquare + aSumRemainingRows + aSumRemainingColumns + aSumNextSquare;
+
+            BigInteger total = sumFirstSquare + aSumRemainingRows + aSumRemainingColumns + remainingXors;
 
             return total;
         }
@@ -137,76 +243,7 @@ namespace ConsoleAppForTesting
             return aSum * y;
         }
 
-
-
-
-        private static List<BigInteger> extraValues = new List<BigInteger>();
-
-        // it makes a difference if (y / x == an even number) VS if (y / x == an odd number)
-        public static BigInteger ElderAgeFrom2PowNMultiple_ToX(long x, long y, long loss, long timeLimit)
-        {
-            // if (y / x == odd number)
-            BigInteger[] extraValuesArray = extraValues.ToArray();
-            BigInteger lastLinesIfRowsLeftIsZero = extraValuesArray[extraValuesArray.Length - 2];
-            extraValuesArray[extraValuesArray.Length - 2] = 0;
-
-            BigInteger additionalAge = 0;
-            foreach (BigInteger entry in extraValuesArray)
-            {
-                additionalAge += entry;
-            }
-          
-            return additionalAge;
-        }
-
-        public static BigInteger WipElderAge(long x, long y, long loss, long timeLimit)
-        {
-            BigInteger eldersTime = 0;
-            // if loss is 7, this is the 4th odd so 7 * 4 (calculated as below)
-            var oddNumberIndex = (loss + 1) / 2;
-
-            BigInteger numTerms = 0;
-            if (loss > 0)
-            {
-                numTerms = x - (loss + 1);
-            }
-            else
-            {
-                numTerms = x - 1;
-            }
-
-
-            BigInteger aSum = (numTerms * ( 1 + x - (loss + 1))) / 2;
-            extraValues.Add(aSum);
-            eldersTime += aSum * y;
-
-            BigInteger toAdd1 = 0;
-            BigInteger tempTerm = y / x;
-            for (int i = 1; i < tempTerm; i++)
-            {
-                toAdd1 += i * x * x;                
-                toAdd1 -= (loss * oddNumberIndex);
-                extraValues.Add(toAdd1 + aSum);
-                //toAdd1 *= x - 1;
-                toAdd1 *= x;
-
-
-                eldersTime += toAdd1;
-                toAdd1 = 0;
-            }
-
-
-
-            BigInteger toAdd = (tempTerm) * x * x;
-            var sub = loss * oddNumberIndex;
-            toAdd -= loss * oddNumberIndex;
-            extraValues.Add(toAdd + aSum);
-            toAdd *= y % x;
-
-            eldersTime += toAdd;
-
-            return eldersTime;
-        }
+      
 
         public static void PrintGrid(long x, long y, long loss, long timeLimit)
         {
@@ -304,7 +341,7 @@ namespace ConsoleAppForTesting
             Console.WriteLine($"naive Elder age = {eldersTime}");
         }
 
-        
+
     }
 }
 
