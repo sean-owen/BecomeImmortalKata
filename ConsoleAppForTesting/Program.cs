@@ -11,19 +11,19 @@ namespace ConsoleAppForTesting
         public static int currentValue = 0;
         static void Main(string[] args)
         {
-            // only works with even condition extra lines commented out
-            //long x = 1000;
-            //long y = 15;
-
-            //fails for these values
-            //long x = 500;
-            //long y = 15;
+            // fails for below
+            // 545, 435, 342, 1000007
+            //long x = 545;
+            //long y = 435;
+            //long loss = 342;
+            //long timeLimit = 1000007;
 
             long x = 45;
-            long y = 5;
+            long y = 35;
+            long loss = 2;
+            long timeLimit = 1000007;
 
-            long loss = 0;
-            long timeLimit = 1000000;
+
 
             ExtensionMethods.PrintGrid(x, y, loss, timeLimit);
 
@@ -71,7 +71,7 @@ namespace ConsoleAppForTesting
             // multiply that aSum by y - firstYValue
             BigInteger numTerms = firstYValue;
             BigInteger a = (2 * firstYValue) - 1;
-            BigInteger aSum = (numTerms * (firstYValue + a)) / 2;
+            BigInteger aSum = (numTerms * (firstYValue - loss + a - loss)) / 2;
             BigInteger aSumRemainingRows = aSum * (y - firstYValue);
 
             // ----- dealing with loss
@@ -82,7 +82,7 @@ namespace ConsoleAppForTesting
             else if ((firstYValue < loss) && (a > loss))
             {
                 numTerms = a - loss;
-                aSum = (numTerms * (loss + 1 + a)) / 2;
+                aSum = (numTerms * (loss + 1 + a)) / 2; // TODO should be a - loss? but then what if a - loss becomes lower than loss? 
                 aSumRemainingRows = aSum * (y - firstYValue);
             }
             else
@@ -115,7 +115,7 @@ namespace ConsoleAppForTesting
             // aSum each column should be aSum from firstYValue -> (2 * firstYValue) - 1
             // multiply that aSum by x - firstYValue
             numTerms = x - firstYValue;
-            aSum = (numTerms * (firstYValue + x - 1)) / 2;
+            aSum = (numTerms * (firstYValue - loss + x - 1 - loss)) / 2;
 
             // ----- dealing with loss
             if (firstYValue > loss)
@@ -125,7 +125,8 @@ namespace ConsoleAppForTesting
             else if ((firstYValue < loss) && ((x - 1) > loss))
             {
                 numTerms = (x - 1) - loss;
-                aSum = (numTerms * (loss + 1 + (x - 1))) / 2;
+                //aSum = (numTerms * (loss + 1 + (x - 1))) / 2; // TODO should be (x - 1) - loss? but then what if (x - 1) - loss becomes lower than loss?
+                aSum = (numTerms * (1 + (x - 1) - loss)) / 2; // believe this is the way to deal with this scenario
             }
             else
             {
@@ -172,13 +173,14 @@ namespace ConsoleAppForTesting
                     {
                         aSumRemainingColumns += (numTerms * (1 + firstYValue - 1)) / 2;
                     }
-                    else if ((1 < loss) && ((firstYValue - 1) > loss))
-                    {
-                        aSumRemainingColumns += ((numTerms - loss) * (loss + firstYValue - 1)) / 2;
-                    }
+                    //else if ((1 < loss) && ((firstYValue - 1) > loss))
+                    //{
+                    //    //aSumRemainingColumns += ((numTerms - loss) * (loss + firstYValue - 1)) / 2; // TODO should be (firstYValue - 1) - loss? but then what if (firstYValue - 1) - loss becomes lower than loss? 
+                    //    aSumRemainingColumns += ((numTerms - loss) * (1 + firstYValue - 1 - loss)) / 2; // believe this is the way to deal with this scenario
+                    //}
                     else
                     {
-                        // dont add anything
+                        aSumRemainingColumns += ((numTerms) * (1 + firstYValue - 1)) / 2; // believe this is the way to deal with this scenario
                     }
                 }
                 else
@@ -197,14 +199,16 @@ namespace ConsoleAppForTesting
                         firstSeries = (nestedNumTerms * (1 + nestedNumTerms)) / 2;
                         aSumRemainingColumns += firstSeries;
                     }
-                    else if ((1 < loss) && (nestedNumTerms > loss))
-                    {
-                        firstSeries = ((nestedNumTerms - loss) * (loss + nestedNumTerms)) / 2;
-                        aSumRemainingColumns += firstSeries;
-                    }
+                    //else if ((1 < loss) && (nestedNumTerms > loss))
+                    //{
+                    //    //firstSeries = ((nestedNumTerms - loss) * (loss + nestedNumTerms)) / 2; // TODO should be (nestedNumTerms) - loss? but then what if (nestedNumTerms) - loss becomes lower than loss? 
+                    //    firstSeries = ((nestedNumTerms - loss) * (1 + nestedNumTerms - loss)) / 2; // believe this is the way to deal with this scenario (maybe missing nestedNumTerms - loss)                        
+                    //    aSumRemainingColumns += firstSeries;
+                    //}
                     else
                     {
-                        // dont add anything
+                        firstSeries = ((nestedNumTerms) * (1 + nestedNumTerms)) / 2; // believe this is the way to deal with this scenario (maybe missing nestedNumTerms - loss)                        
+                        aSumRemainingColumns += firstSeries;
                     }
 
 
@@ -219,10 +223,13 @@ namespace ConsoleAppForTesting
                     {
                         finalIncValue = i * subsequentIncrements;
 
+                        // Todo - PRIORITY
+                        // final inc value goes to 48 but should actually go to 208.... ? 
+
                         // ----- dealing with loss
                         if (finalIncValue > loss)
                         {
-                            aSumRemainingColumns += finalIncValue * rowOnWhichIncrementSquares;
+                            aSumRemainingColumns += (finalIncValue) * rowOnWhichIncrementSquares;
                             aSumRemainingColumns += firstSeries; // TODO - not sure if this should be inside this if statement
                         }
 
@@ -235,11 +242,11 @@ namespace ConsoleAppForTesting
                         // ----- dealing with loss
                         if ((finalIncValue + subsequentIncrements) > loss)
                         {
-                            aSumRemainingColumns += (finalIncValue + subsequentIncrements) * (numTerms % rowOnWhichIncrementSquares);
+                            aSumRemainingColumns += ((finalIncValue + subsequentIncrements) - loss) * (numTerms % rowOnWhichIncrementSquares);
                         }
                         if (((numTerms % rowOnWhichIncrementSquares) - 1) > loss)
                         {
-                            aSumRemainingColumns += (numTerms % rowOnWhichIncrementSquares) - 1;
+                            aSumRemainingColumns += (numTerms % rowOnWhichIncrementSquares) - 1 - loss;
                         }
 
                         // ----- dealing with loss
@@ -249,15 +256,19 @@ namespace ConsoleAppForTesting
                             BigInteger lastSeries = (nestedNumTerms * (1 + nestedNumTerms)) / 2;
                             aSumRemainingColumns += lastSeries;
                         }
-                        else if ((1 < loss) && (nestedNumTerms > loss))
-                        {
-                            nestedNumTerms = (numTerms % rowOnWhichIncrementSquares) - 1;
-                            BigInteger lastSeries = ((nestedNumTerms - loss) * (loss + nestedNumTerms)) / 2;
-                            aSumRemainingColumns += lastSeries;
-                        }
+                        //else if ((1 < loss) && (nestedNumTerms > loss))
+                        //{
+                        //    nestedNumTerms = (numTerms % rowOnWhichIncrementSquares) - 1;
+                        //    //BigInteger lastSeries = ((nestedNumTerms - loss) * (loss + nestedNumTerms)) / 2; // TODO should be (nestedNumTerms) - loss? but then what if (nestedNumTerms) - loss becomes lower than loss? 
+                        //    BigInteger lastSeries = ((nestedNumTerms - loss) * (1 + nestedNumTerms - loss)) / 2; // believe this is the way to deal with this scenario (maybe missing a -1 as indicated in line above)                            
+                        //    aSumRemainingColumns += lastSeries;
+                        //}
                         else
                         {
                             // dont add anything 
+                            nestedNumTerms = (numTerms % rowOnWhichIncrementSquares) - 1;                            
+                            BigInteger lastSeries = ((nestedNumTerms - loss) * (1 + nestedNumTerms - loss)) / 2; // believe this is the way to deal with this scenario (maybe missing a -1 as indicated in line above)                            
+                            aSumRemainingColumns += lastSeries;
                         }
 
                     }
@@ -302,7 +313,7 @@ namespace ConsoleAppForTesting
                         // ----- dealing with loss
                         if (finalIncValue > loss)
                         {
-                            aSumRemainingColumns += finalIncValue * rowOfPatternChange;
+                            aSumRemainingColumns += (finalIncValue - loss) * rowOfPatternChange;
                         }
 
                         i++;
@@ -318,7 +329,7 @@ namespace ConsoleAppForTesting
                         // ----- dealing with loss
                         if (finalIncValue > loss)
                         {
-                            aSumRemainingColumns += (firstYValue % rowOfPatternChange) * finalIncValue;
+                            aSumRemainingColumns += (firstYValue % rowOfPatternChange) * (finalIncValue - loss);
                         }
                     }
                 }
@@ -381,9 +392,16 @@ namespace ConsoleAppForTesting
                 numTerms = x - 1;
             }
 
+            if (x > loss)
+            {
+                BigInteger aSum = (numTerms * (1 + x - (loss + 1))) / 2;
+                return aSum * y;
+            }
+            else
+            {
+                return 0;
+            }
 
-            BigInteger aSum = (numTerms * (1 + x - (loss + 1))) / 2;
-            return aSum * y;
         }
 
 
